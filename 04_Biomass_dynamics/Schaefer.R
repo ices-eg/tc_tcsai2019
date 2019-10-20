@@ -150,11 +150,41 @@ plot_shaefer(fit, cod, main = "Cod")
 fit$pars
 fit$refpts
 
+
+# initialise at nlminb solution?
+opt <- optim(init, Schaefer, data=cod, method = "BFGS")
+opt
+
+opt <- optim(opt$par, Schaefer, data=cod, method = "Nelder-Mead")
+opt
+
+fit <- Schaefer(opt$par, cod, verbose=TRUE)
+
+plot_shaefer(fit, cod, main = "Cod")
+
+fit$pars
+fit$refpts
+
+
+
 # initialise at solver solution ?
 init <- c(logr=log(1.02798251784361), logK=log(920.324078858206), logBinit=log(460.961477373726), logq=log(0.729428157796693))
 
-Schaefer(par=init, cod)
 opt <- optim(init, Schaefer, data=cod)
+opt
+fit <- Schaefer(opt$par, cod, verbose=TRUE)
+exp(opt$par)
+
+plot_shaefer(fit, cod, main = "Cod")
+
+fit$pars
+fit$refpts
+
+
+# try a different optimiser - this is the best fit... but is it sensible?
+set.seed(15) # this optimiser is simulation based and the fits can depend on the random seed
+             # if the model does not fit that well
+opt <- optim(init, Schaefer, data=cod, method = "SANN")
 opt
 fit <- Schaefer(opt$par, cod, verbose=TRUE)
 exp(opt$par)
