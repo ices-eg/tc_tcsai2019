@@ -1,32 +1,37 @@
 source("vpa_function.R")
 
-## Read catch at age, change units
-catage <- read.table("bluefin.dat", header=TRUE, check.names=FALSE, row.names=1)
-catage <- catage / 1000
+## Read catch at age
+catch <- read.csv("cod_catch.csv", header=TRUE, check.names=FALSE, row.names=1)
 
 ## Run model
-model <- vpa(catage, M=0.14, Fterm=0.1, Fages=5)
+model <- vpa(catch, M=0.2, Fterm=0.1, Fages=3)
 
 ## View results
 par(mfrow=c(2,2))
 
-## 1 Population
-round(model$N)
-Year <- as.integer(rownames(model$N))
-plot(apply(model$N, 2, median), ylim=c(0,120), yaxs="i", type="l", lty=3,
-     main="Population in 2013 (bars) vs.\n median population (line)",
-     xlab="Age", ylab="Individuals")
-points(c(tail(model$N, 1)), type="h", lwd=6)
+## Fishing mortality
+round(model$F, 3)
 
-## 2 Recruitment
-barplot(model$N[,1], ylab="Individuals at age 1", main="Recruitment")
+## Recruitment
+barplot(model$N[,1], ylab="Recruitment at age 1", main="Recruitment (N age 1)")
 
-## 3 Selectivity
-round(model$F, 2)
-plot(colMeans(model$F)/max(colMeans(model$F)), ylim=c(0,1.05), yaxs="i",
-     type="l", main="Selectivity", xlab="Age", ylab="Average F at age")
+## Selectivity
+round(model$F, 3)
+plot(colMeans(model$F)/max(colMeans(model$F)), ylim=c(0,1.05),
+     type="l", main="Selectivity", xlab="Age", ylab="Mean F at age")
 
-## 4 Fbar
-Fbar2.5 <- rowMeans(model$F[,2:5])
-plot(Year, Fbar2.5, ylim=c(0,0.35), yaxs="i", main="Fbar (2-5)",
-     ylab="Average F at ages 2-5", type="l")
+## Fbar
+Fbar <- rowMeans(model$F)
+plot(Year, Fbar, ylim=c(0, max(Fbar)), main="Mean F ages 1-10",
+     ylab="Mean F (ages 1-10)", type="l")
+
+## SSB
+
+## Read weigths and maturity at age
+wt <- read.csv("cod_weights.csv", header=TRUE, check.names=FALSE, row.names=1)
+mat <- read.csv("cod_maturity.csv", header=TRUE, check.names=FALSE, row.names=1)
+
+ssb <- rowSums(model$N * wt * mat) / 1000
+plot(Year, ssb, ylim = c(0, max(ssb)), main="Spawning stock biomass (SSB)",
+     ylab="SSB (kt)", type="l")
+
