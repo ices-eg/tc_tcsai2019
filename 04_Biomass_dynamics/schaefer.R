@@ -1,4 +1,4 @@
-schaefer <- function(par, data, verbose=FALSE)
+schaefer <- function(par, data, report=FALSE, plot=FALSE, ...)
 {
   r <- exp(par[["logr"]])
   K <- exp(par[["logK"]])
@@ -21,31 +21,40 @@ schaefer <- function(par, data, verbose=FALSE)
 
   pars <- c(r=r, K=K, Binit=Binit, q=q)
   refpts <- c(HRmsy=0.5*r, Bmsy=0.5*K, MSY=0.25*r*K)
+  HR <- C/B
 
-  if(verbose)
-    list(B=B, HR=C/B, Ifit=Ifit, res=res, pars=pars, refpts=refpts, RSS=RSS)
+  if(plot)
+    plot_schaefer(list(t=year, B=B, C=C, I=I, Ifit=Ifit, res=res, HR=HR), ...)
+
+  if(report)
+    list(t=year, B=B, C=C, I=I, Ifit=Ifit, res=res, HR=HR,
+         pars=pars, refpts=refpts, RSS=RSS)
   else
     RSS
 }
 
-plot_schaefer <- function(fit, data, main) {
-  par(mfrow=c(2,2))
+plot_schaefer <- function(fit, label="")
+{
+  if(label != "") label <- paste0(label, ":")
 
-  plot(data$Year, fit$Ifit, ylim=c(0,max(fit$Ifit)), type="l", lwd=4,
-       col="gray", xlab="Year", ylab="Biomass index",
-       main=paste0(main, ": Fit to data"))
-  points(Index ~ Year, data)
+  opar <- par(mfrow=c(2,2)); on.exit(par(opar))
 
-  plot(data$Year, fit$B, type="l", ylim=c(0, max(fit$B)), lwd=2,
-       xlab="Year", ylab="Biomass and catch", main=paste0(main, ": Biomass and catch"))
-  points(Catch~Year, data, type="h", lwd=6)
+  plot(fit$t, fit$Ifit, ylim=c(0, 1.1*max(fit$I, fit$Ifit)),
+       type="l", lwd=4, col="gray", yaxs="i",
+       xlab="", ylab="Biomass index", main=paste(label, "Fit to data"))
+  points(fit$t, fit$I)
 
-  plot(data$Year, fit$HR, ylim=c(0, max(fit$HR)), type="l",
-       lwd=2, xlab="Year", ylab="Harvest rate", main=paste0(main, ": Harvest rate"))
+  plot(fit$t, fit$B, type="l", ylim=c(0, 1.1*max(fit$B)), lwd=2, yaxs="i",
+       xlab="", ylab="Biomass and catch",
+       main=paste(label, "Biomass and catch"))
+  points(fit$t, fit$C, type="h", lwd=6)
 
-  plot(data$Year, fit$res, xlab = "Year", ylab = "log residuals",
-    main=paste0(main, ": Residuals"))
-  abline(h = 0)
+  plot(fit$t, fit$HR, ylim=c(0, 1.1*max(fit$HR)), type="l", lwd=2, yaxs="i",
+       xlab="", ylab="Harvest rate", main=paste(label, "Harvest rate"))
+
+  plot(fit$t, fit$res, ylim=c(-1.1,1.1)*max(abs(fit$res)),
+       xlab="", ylab="Log residuals", main=paste(label, "Residuals"))
+  abline(h=0)
 }
 
 ################################################################################
@@ -54,142 +63,50 @@ plot_schaefer <- function(fit, data, main) {
 albacore <- read.table("albacore.dat", header=TRUE)
 init <- c(logr=log(0.5), logK=log(200), logBinit=log(100), logq=log(0.5))
 
-schaefer(par=init, albacore)
+schaefer(init, albacore, plot=TRUE, label="Initial")
 optim(init, schaefer, data=albacore)
 est <- optim(init, schaefer, data=albacore)$par
-fit <- schaefer(est, albacore, verbose=TRUE)
-
-par(mfrow=c(2,2))
-
-plot(albacore$Year, fit$Ifit, ylim=c(0,90), yaxs="i", type="l", lwd=4,
-     col="gray", xlab="Year", ylab="Biomass index",
-     main="Albacore: Fit to data")
-points(Index~Year, albacore)
-
-plot(albacore$Year, fit$B, type="l", ylim=c(0,300), yaxs="i", lwd=2,
-     xlab="Year", ylab="Biomass and catch", main="Albacore: Biomass and catch")
-points(Catch~Year, albacore, type="h", lwd=6)
-
-plot(albacore$Year, fit$HR, ylim=c(0,0.35), yaxs="i", type="l",
-     lwd=2, xlab="Year", ylab="Harvest rate", main="Albacore: Harvest rate")
+fit <- schaefer(est, albacore, report=TRUE, plot=TRUE, label="Albacore")
 
 fit$pars
+fit$RSS
 fit$refpts
 
 ################################################################################
 ## Georges Bank winter flounder
 
 flounder <- read.table("flounder.dat", header=TRUE)
+init <- c(logr=log(0.5), logK=log(30), logBinit=log(20), logq=log(0.1))
 
-K.init <- 8 * mean(flounder$Catch)
-B.init <- 0.5 * K.init
-q.init <- flounder$Index[1] / B.init
-init <- c(logr=log(0.5), logK=log(K.init),
-          logBinit=log(B.init), logq=log(q.init))
-
-schaefer(par=init, flounder)
+schaefer(init, flounder, plot=TRUE, label="Initial")
 optim(init, schaefer, data=flounder)
 optim(init, schaefer, data=flounder, method="Nelder-Mead",
       control=list(maxit=1e5, reltol=1e-10))
 nlminb(init, schaefer, data=flounder, control=list(eval.max=1e4, iter.max=1e4))
 est <- nlminb(init, schaefer, data=flounder,
               control=list(eval.max=1e4, iter.max=1e4))$par
-fit <- schaefer(est, flounder, verbose=TRUE)
-
-par(mfrow=c(2,2))
-
-plot(flounder$Year, fit$Ifit, ylim=c(0,8), yaxs="i", lwd=4, col="gray",
-     type="l", xlab="Year", ylab="Biomass index", main="Flounder: Fit to data")
-points(Index~Year, flounder)
-
-plot(flounder$Year, fit$B, type="l", ylim=c(0,15), yaxs="i", lwd=2,
-     xlab="Year", ylab="Biomass and catch", main="Flounder: Biomass and catch")
-points(Catch~Year, flounder, type="h", lwd=6)
-
-plot(flounder$Year, fit$HR, ylim=c(0,0.6), yaxs="i", type="l",
-     lwd=2, xlab="Year", ylab="Harvest rate", main="Flounder: Harvest rate")
+fit <- schaefer(est, flounder, report=TRUE, plot=TRUE, label="Flounder")
 
 t(fit$pars)
+fit$RSS
 t(fit$refpts)
 
 
 ################################################################################
 ## Cod
 
-cod <- read.csv("cod.csv", header=TRUE)
-init <- c(logr     = log(1.000), 
-          logK     = log(8*mean(cod$Catch)), 
-          logBinit = log(4*mean(cod$Catch)), 
-          logq     = log(cod$Index[1] / (4*mean(cod$Catch)))
-          )
+cod <- read.csv("cod.csv")
+init <- c(logr=log(0.2), logK=log(3000), logBinit=log(2000), logq=log(0.1))
 
-schaefer(par=init, cod)
-opt <- optim(init, schaefer, data=cod)
-opt
-fit <- schaefer(opt$par, cod, verbose=TRUE)
-exp(opt$par)
+schaefer(init, cod, plot=TRUE, label="Initial")
+optim(init, schaefer, data=cod)
+optim(init, schaefer, data=cod, method="Nelder-Mead",
+      control=list(maxit=1e5, reltol=1e-10))
+nlminb(init, schaefer, data=cod, control=list(eval.max=1e4, iter.max=1e4))
+est <- nlminb(init, schaefer, data=cod,
+              control=list(eval.max=1e4, iter.max=1e4))$par
+fit <- schaefer(est, cod, report=TRUE, plot=TRUE, label="Cod")
 
-plot_schaefer(fit, cod, main = "Cod")
-
-fit$pars
-fit$refpts
-
-# use contstraints ?
-lower <- c(logr=log(.8), logK=log(500), logBinit=log(300), logq=log(.2))
-upper <- c(logr=log(1.5), logK=log(1000), logBinit=log(700), logq=log(.9))
-
-opt <- nlminb(init, schaefer, data=cod, lower = lower, upper = upper, control=list(eval.max=1e4, iter.max=1e4))
-opt
-
-exp(opt$par)
-
-fit <- schaefer(opt$par, cod, verbose=TRUE)
-
-plot_schaefer(fit, cod, main = "Cod")
-
-fit$pars
-fit$refpts
-
-
-# initialise at nlminb solution?
-opt <- optim(init, schaefer, data=cod, method = "BFGS")
-opt
-
-opt <- optim(opt$par, schaefer, data=cod, method = "Nelder-Mead")
-opt
-
-fit <- schaefer(opt$par, cod, verbose=TRUE)
-
-plot_schaefer(fit, cod, main = "Cod")
-
-fit$pars
-fit$refpts
-
-
-
-# initialise at solver solution ?
-init <- c(logr=log(1.02798251784361), logK=log(920.324078858206), logBinit=log(460.961477373726), logq=log(0.729428157796693))
-
-opt <- optim(init, schaefer, data=cod)
-opt
-fit <- schaefer(opt$par, cod, verbose=TRUE)
-exp(opt$par)
-
-plot_schaefer(fit, cod, main = "Cod")
-
-fit$pars
-fit$refpts
-
-
-# try a different optimiser - this is the best fit... but is it sensible?
-set.seed(15) # this optimiser is simulation based and the fits can depend on the random seed
-             # if the model does not fit that well
-opt <- optim(init, schaefer, data=cod, method = "SANN")
-opt
-fit <- schaefer(opt$par, cod, verbose=TRUE)
-exp(opt$par)
-
-plot_schaefer(fit, cod, main = "Cod")
-
-fit$pars
+t(fit$pars)
+fit$RSS
 fit$refpts
