@@ -17,7 +17,7 @@ plot_ricker <- function(data, a, b, ...)
 }
 plot_ricker(cod, a=1, b=1)
 ## a is the initial slope
-## a / exp(b) is maximum recruitment
+## 1/b is the SSB that produces maximum recruitment
 plot_ricker(cod, a=5, b=0.01)
 
 
