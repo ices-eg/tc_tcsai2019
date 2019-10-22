@@ -1,14 +1,16 @@
 ## 1  Import and explore data
-cod <- read.csv("recruitment.csv")
+cod <- read.csv("cod_recruitment.csv")
 cod
+par(mfrow=c(2,2))
 plot(cod, xlim=c(0,130), ylim=c(0,400))
+
 
 ## 2  Function to plot Ricker line
 plot_ricker <- function(data, a, b, ...)
 {
   S <- data[[1]]
   R <- data[[2]]
-  plot(data, xlim=c(0,1.1*max(S)), ylim=c(0,1.1*max(R)))
+  plot(data, xlim=c(0,1.1*max(S)), ylim=c(0,1.1*max(R)), ...)
   Sfit <- seq(0, 1.1*max(S), length=200)
   Rfit <- a * Sfit * exp(-b*Sfit)
   lines(Sfit, Rfit)
@@ -17,6 +19,7 @@ plot_ricker(cod, a=1, b=1)
 ## a is the initial slope
 ## a / exp(b) is maximum recruitment
 plot_ricker(cod, a=5, b=0.01)
+
 
 ## 3  Function to fit model (estimate a and b)
 ricker <- function(par, data)
@@ -29,6 +32,7 @@ ricker <- function(par, data)
   res <- log(data$R) - log(Rfit)
   sum(res^2)
 }
+
 
 ## 4  Fit model
 
@@ -46,3 +50,8 @@ fit  # estimated parameters
 
 ## Exponentiate
 c(a=exp(fit[["loga"]]), b=exp(fit[["logb"]]))
+best <- data.frame(a=exp(fit[["loga"]]), b=exp(fit[["logb"]]))
+
+
+## 5  Plot fitted model
+plot_ricker(cod, a=best$a, b=best$b, main="Best fit")
