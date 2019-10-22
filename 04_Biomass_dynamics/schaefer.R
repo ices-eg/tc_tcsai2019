@@ -1,8 +1,8 @@
-Schaefer <- function(par, data, verbose=FALSE)
+schaefer <- function(par, data, verbose=FALSE)
 {
   r <- exp(par[["logr"]])
   K <- exp(par[["logK"]])
-  Binit <- exp(par[["logBinit"]])    
+  Binit <- exp(par[["logBinit"]])
   q <- exp(par[["logq"]])
   year <- data$Year
   C <- data$Catch
@@ -28,7 +28,7 @@ Schaefer <- function(par, data, verbose=FALSE)
     RSS
 }
 
-plot_shaefer <- function(fit, data, main) {
+plot_schaefer <- function(fit, data, main) {
   par(mfrow=c(2,2))
 
   plot(data$Year, fit$Ifit, ylim=c(0,max(fit$Ifit)), type="l", lwd=4,
@@ -54,10 +54,10 @@ plot_shaefer <- function(fit, data, main) {
 albacore <- read.table("albacore.dat", header=TRUE)
 init <- c(logr=log(0.5), logK=log(200), logBinit=log(100), logq=log(0.5))
 
-Schaefer(par=init, albacore)
-optim(init, Schaefer, data=albacore)
-est <- optim(init, Schaefer, data=albacore)$par
-fit <- Schaefer(est, albacore, verbose=TRUE)
+schaefer(par=init, albacore)
+optim(init, schaefer, data=albacore)
+est <- optim(init, schaefer, data=albacore)$par
+fit <- schaefer(est, albacore, verbose=TRUE)
 
 par(mfrow=c(2,2))
 
@@ -87,14 +87,14 @@ q.init <- flounder$Index[1] / B.init
 init <- c(logr=log(0.5), logK=log(K.init),
           logBinit=log(B.init), logq=log(q.init))
 
-Schaefer(par=init, flounder)
-optim(init, Schaefer, data=flounder)
-optim(init, Schaefer, data=flounder, method="Nelder-Mead",
+schaefer(par=init, flounder)
+optim(init, schaefer, data=flounder)
+optim(init, schaefer, data=flounder, method="Nelder-Mead",
       control=list(maxit=1e5, reltol=1e-10))
-nlminb(init, Schaefer, data=flounder, control=list(eval.max=1e4, iter.max=1e4))
-est <- nlminb(init, Schaefer, data=flounder,
+nlminb(init, schaefer, data=flounder, control=list(eval.max=1e4, iter.max=1e4))
+est <- nlminb(init, schaefer, data=flounder,
               control=list(eval.max=1e4, iter.max=1e4))$par
-fit <- Schaefer(est, flounder, verbose=TRUE)
+fit <- schaefer(est, flounder, verbose=TRUE)
 
 par(mfrow=c(2,2))
 
@@ -123,13 +123,13 @@ init <- c(logr     = log(1.000),
           logq     = log(cod$Index[1] / (4*mean(cod$Catch)))
           )
 
-Schaefer(par=init, cod)
-opt <- optim(init, Schaefer, data=cod)
+schaefer(par=init, cod)
+opt <- optim(init, schaefer, data=cod)
 opt
-fit <- Schaefer(opt$par, cod, verbose=TRUE)
+fit <- schaefer(opt$par, cod, verbose=TRUE)
 exp(opt$par)
 
-plot_shaefer(fit, cod, main = "Cod")
+plot_schaefer(fit, cod, main = "Cod")
 
 fit$pars
 fit$refpts
@@ -138,29 +138,29 @@ fit$refpts
 lower <- c(logr=log(.8), logK=log(500), logBinit=log(300), logq=log(.2))
 upper <- c(logr=log(1.5), logK=log(1000), logBinit=log(700), logq=log(.9))
 
-opt <- nlminb(init, Schaefer, data=cod, lower = lower, upper = upper, control=list(eval.max=1e4, iter.max=1e4))
+opt <- nlminb(init, schaefer, data=cod, lower = lower, upper = upper, control=list(eval.max=1e4, iter.max=1e4))
 opt
 
 exp(opt$par)
 
-fit <- Schaefer(opt$par, cod, verbose=TRUE)
+fit <- schaefer(opt$par, cod, verbose=TRUE)
 
-plot_shaefer(fit, cod, main = "Cod")
+plot_schaefer(fit, cod, main = "Cod")
 
 fit$pars
 fit$refpts
 
 
 # initialise at nlminb solution?
-opt <- optim(init, Schaefer, data=cod, method = "BFGS")
+opt <- optim(init, schaefer, data=cod, method = "BFGS")
 opt
 
-opt <- optim(opt$par, Schaefer, data=cod, method = "Nelder-Mead")
+opt <- optim(opt$par, schaefer, data=cod, method = "Nelder-Mead")
 opt
 
-fit <- Schaefer(opt$par, cod, verbose=TRUE)
+fit <- schaefer(opt$par, cod, verbose=TRUE)
 
-plot_shaefer(fit, cod, main = "Cod")
+plot_schaefer(fit, cod, main = "Cod")
 
 fit$pars
 fit$refpts
@@ -170,12 +170,12 @@ fit$refpts
 # initialise at solver solution ?
 init <- c(logr=log(1.02798251784361), logK=log(920.324078858206), logBinit=log(460.961477373726), logq=log(0.729428157796693))
 
-opt <- optim(init, Schaefer, data=cod)
+opt <- optim(init, schaefer, data=cod)
 opt
-fit <- Schaefer(opt$par, cod, verbose=TRUE)
+fit <- schaefer(opt$par, cod, verbose=TRUE)
 exp(opt$par)
 
-plot_shaefer(fit, cod, main = "Cod")
+plot_schaefer(fit, cod, main = "Cod")
 
 fit$pars
 fit$refpts
@@ -184,12 +184,12 @@ fit$refpts
 # try a different optimiser - this is the best fit... but is it sensible?
 set.seed(15) # this optimiser is simulation based and the fits can depend on the random seed
              # if the model does not fit that well
-opt <- optim(init, Schaefer, data=cod, method = "SANN")
+opt <- optim(init, schaefer, data=cod, method = "SANN")
 opt
-fit <- Schaefer(opt$par, cod, verbose=TRUE)
+fit <- schaefer(opt$par, cod, verbose=TRUE)
 exp(opt$par)
 
-plot_shaefer(fit, cod, main = "Cod")
+plot_schaefer(fit, cod, main = "Cod")
 
 fit$pars
 fit$refpts
