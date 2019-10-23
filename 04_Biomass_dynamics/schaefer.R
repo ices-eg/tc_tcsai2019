@@ -22,13 +22,14 @@ schaefer <- function(par, data, report=FALSE, plot=FALSE, ...)
   pars <- c(r=r, K=K, Binit=Binit, q=q)
   refpts <- c(HRmsy=0.5*r, Bmsy=0.5*K, MSY=0.25*r*K)
   HR <- C/B
+  fit <- list(t=year, B=B, C=C, I=I, Ifit=Ifit, res=res,
+              HR=HR, pars=pars, refpts=refpts, RSS=RSS)
 
   if(plot)
-    plot_schaefer(list(t=year, B=B, C=C, I=I, Ifit=Ifit, res=res, HR=HR), ...)
+    plot_schaefer(fit, ...)
 
   if(report)
-    list(t=year, B=B, C=C, I=I, Ifit=Ifit, res=res, HR=HR,
-         pars=pars, refpts=refpts, RSS=RSS)
+    fit
   else
     RSS
 }
@@ -51,6 +52,7 @@ plot_schaefer <- function(fit, label="")
 
   plot(fit$t, fit$HR, ylim=c(0, 1.1*max(fit$HR)), type="l", lwd=2, yaxs="i",
        xlab="", ylab="Harvest rate", main=paste(label, "Harvest rate"))
+  abline(h=fit$refpts["HRmsy"], lty=3)
 
   plot(fit$t, fit$res, ylim=c(-1.1,1.1)*max(abs(fit$res)),
        xlab="", ylab="Log residuals", main=paste(label, "Residuals"))
