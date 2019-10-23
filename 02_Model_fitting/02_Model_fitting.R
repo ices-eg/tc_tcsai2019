@@ -375,12 +375,12 @@ hist(rmean_star)
 # resample from the residuals as if the resuduals are random and reestimate the
 # parameters
 r_star <- sample(resids, replace = TRUE)
-opt <- optim(par0, ssq_optim, S = herring$ssb, Robs = Rpred + r_star)
+opt <- optim(par0, ssq_optim, S = herring$ssb, Robs = Rpred * exp(r_star))
 opt$par
 
 # do it again
 r_star <- sample(resids, replace = TRUE)
-opt <- optim(par0, ssq_optim, S = herring$ssb, Robs = Rpred + r_star)
+opt <- optim(par0, ssq_optim, S = herring$ssb, Robs = Rpred * exp(r_star))
 opt$par
 
 
