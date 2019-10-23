@@ -1,37 +1,41 @@
 source("vpa_function.R")
 
-## Read catch at age
-catch <- read.csv("cod_catch.csv", header=TRUE, check.names=FALSE, row.names=1)
+## Import data
+catage <- read.csv("cod_catch.csv", check.names=FALSE, row.names=1) / 1000
+wcatch <- read.csv("cod_weights.csv", check.names=FALSE, row.names=1)
+maturity <- read.csv("cod_maturity.csv", check.names=FALSE, row.names=1)
 
 ## Run model
-model <- vpa(catch, M=0.2, Fterm=0.1, Fages=3)
+model <- vpa(catage, M=0.2, Fterm=0.1, Fages=3)
+Year <- as.integer(rownames(model$N))
 
 ## View results
-par(mfrow=c(2,2))
+par(mfrow=c(3,2))
 
-## Fishing mortality
-round(model$F, 3)
+## 1  Recruitment
+round(model$N, 1)
+barplot(model$N[,1], main="Recruitment", xlab="Year",
+        ylab="Numbers at age 1 (millions)")
 
-## Recruitment
-barplot(model$N[,1], ylab="Recruitment at age 1", main="Recruitment (N age 1)")
+## 2  Catch
+Y <- rowSums(catage * wcatch)
+barplot(Y, main="Catch", xlab="Year", ylab="Annual catch (kt)")
 
-## Selectivity
-round(model$F, 3)
+## 3  SSB
+SSB <- rowSums(model$N * wcatch * maturity)
+plot(Year, SSB, ylim=c(0,1.1*max(SSB)), main="Stock size", ylab="SSB (kt)",
+     type="l")
+
+## 4  Fbar
+round(model$F, 1)
+Fbar <- rowMeans(model$F[,as.character(2:4)])
+plot(Year, Fbar, ylim=c(0,1.1*max(Fbar)), main="Fishing mortality",
+     ylab="Mean F (ages 2-4)", type="l")
+
+## 5  Current population
+barplot(model$N[nrow(model$N),], main="Current population", xlab="Age",
+        ylab="Numbers at age (millions)")
+
+## 6  Selectivity
 plot(colMeans(model$F)/max(colMeans(model$F)), ylim=c(0,1.05),
-     type="l", main="Selectivity", xlab="Age", ylab="Mean F at age")
-
-## Fbar
-Fbar <- rowMeans(model$F)
-plot(Year, Fbar, ylim=c(0, max(Fbar)), main="Mean F ages 1-10",
-     ylab="Mean F (ages 1-10)", type="l")
-
-## SSB
-
-## Read weigths and maturity at age
-wt <- read.csv("cod_weights.csv", header=TRUE, check.names=FALSE, row.names=1)
-mat <- read.csv("cod_maturity.csv", header=TRUE, check.names=FALSE, row.names=1)
-
-ssb <- rowSums(model$N * wt * mat) / 1000
-plot(Year, ssb, ylim = c(0, max(ssb)), main="Spawning stock biomass (SSB)",
-     ylab="SSB (kt)", type="l")
-
+     type="l", main="Selectivity", xlab="Age", ylab="Average F scaled to 1")
