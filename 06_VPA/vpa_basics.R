@@ -5,7 +5,7 @@ T <- nrow(C)
 A <- ncol(C)
 N <- F <- Z <- matrix(NA_real_, nrow=T, ncol=A, dimnames=dimnames(C))
 
-## Assume F in terminal year=0.1, M=0.14
+## Assume F in terminal year=0.1, M=0.2
 F[T,] <- 0.1
 M <- 0.2
 Z <- F + M
