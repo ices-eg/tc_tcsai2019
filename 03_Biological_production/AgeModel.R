@@ -69,7 +69,7 @@ Rec.curve <- (alpha*SSB.curve) / (beta+SSB.curve)
 par(mfrow=c(2,1), oma=c(0,0,0,3))
 plot(year, SR$SSB, ylim=c(0,12000), type="l", lwd=2, col="blue", xlab="Year",
      ylab="SSB (t)")
-lines(year, SR$Rec*10, lwd=2, col="red")
+lines(year, type="h", SR$Rec*10, lwd=2, col="red")
 axis(4, at=seq(0,12000,by=2000), labels=seq(0,1200,by=200))
 mtext("Recruitment at age 1 (1000s)", side=4, line=3)
 
@@ -106,7 +106,7 @@ Rec.curve <- (alpha*SSB.curve) / (beta+SSB.curve)
 
 plot(year, SR$SSB, ylim=c(0,15000), type="l", lwd=2, col="blue", xlab="Year",
      ylab="SSB (t)")
-lines(year, SR$Rec*10, lwd=2, col="red")
+lines(year, SR$Rec*10, type="h", lwd=2, col="red")
 axis(4, at=seq(0,12000,by=2000), labels=seq(0,1200,by=200))
 mtext("Recruitment at age 1 (1000s)", side=4, line=3)
 
