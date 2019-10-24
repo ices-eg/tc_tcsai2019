@@ -1,6 +1,6 @@
 ## Read data, prepare matrices
 C <- as.matrix(read.csv("cod_catch.csv", header=TRUE,
-                        check.names=FALSE, row.names=1)) / 1000
+                        check.names=FALSE, row.names=1))
 T <- nrow(C)
 A <- ncol(C)
 N <- F <- Z <- matrix(NA_real_, nrow=T, ncol=A, dimnames=dimnames(C))

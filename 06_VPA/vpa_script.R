@@ -1,7 +1,7 @@
 source("vpa_function.R")
 
 ## Import data
-catage <- read.csv("cod_catch.csv", check.names=FALSE, row.names=1) / 1000
+catage <- read.csv("cod_catch.csv", check.names=FALSE, row.names=1)
 wcatch <- read.csv("cod_weights.csv", check.names=FALSE, row.names=1)
 maturity <- read.csv("cod_maturity.csv", check.names=FALSE, row.names=1)
 
