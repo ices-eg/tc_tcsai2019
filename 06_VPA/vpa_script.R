@@ -6,7 +6,11 @@ wcatch <- read.csv("cod_weights.csv", check.names=FALSE, row.names=1)
 maturity <- read.csv("cod_maturity.csv", check.names=FALSE, row.names=1)
 
 ## Run model
-model <- vpa(catage, M=0.2, Fterm=0.1, Fages=3)
+vpa(catage, M=0.2, Fterm=0.1, Fages=3)
+calibrate(catage, M=0.2, Fterm=0.1, Fages=3, Fyears=3)
+calibrate(catage, M=0.2, Fterm=0.001, Fages=3, Fyears=3)
+calibrate(catage, M=0.2, Fterm=10, Fages=3, Fyears=3)
+model <- calibrate(catage, M=0.2, Fterm=0.1, Fages=3, Fyears=3)
 Year <- as.integer(rownames(model$N))
 
 ## View results
