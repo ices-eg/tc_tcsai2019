@@ -49,7 +49,7 @@ vpa <- function(C, M, Fterm, Fages)
   list(N=N, F=F, Z=Z, C=C, M=M, Fterm=Fterm, Fages=Fages)
 }
 
-calibrate <- function(Fterm, C, M, Fages, Fyears, n=100)
+calibrate <- function(C, M, Fterm, Fages, Fyears, n=100)
 {
   Fbest <- Fterm  # best terminal F found so far
   for(i in 1:n)
