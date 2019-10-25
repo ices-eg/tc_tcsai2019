@@ -97,16 +97,17 @@ sca <- function(par, data, full=FALSE)
   ## Evaluate likelihood
   Cres <- log(C) - log(Chat)
   Ires <- log(I) - log(Ihat)
+  RSS <- c(catch=sum(Cres^2), survey=sum(Ires^2))
   neglogL <- function(res)
   {
     -sum(dnorm(res, sd=sqrt(mean(res^2)), log=TRUE))
   }
-  f <- c(catch=neglogL(Cres), survey=neglogL(Ires))
+  f <- neglogL(Cres) + neglogL(Ires)
 
   ## Prepare output
   if(full)
     out <- list(par=par, C=C, I=I, M=M, N=N, F=F, Z=Z, Chat=Chat, Ihat=Ihat,
-                Cres=Cres, Ires=Ires, f=f)
+                Cres=Cres, Ires=Ires, RSS=RSS, f=f)
   else
     out <- sum(f)
 
