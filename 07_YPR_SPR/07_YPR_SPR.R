@@ -3,19 +3,11 @@
 # Colin Millar
 
 # This script shows the steps followed to Calculate
-# yeild per recruit reference points from the a VPA fit to
-# the data in 'bluefin_catage.dat'
+# yield per recruit reference points from the VPA fit.
 
 #==============================================================================
 #
-# Use results from VPA assignment to estimate Fmax and F40% for
-# western Atlantic bluefin tuna.
-#
-#   M=0.14
-#   Assume 2007 selectivity pattern from VPA (less influenced by 2013 F assumption).
-#   Maturity at age 9 (0% mature at ages 1-8, 100% mature at ages 9+; ICCAT 2014)
-#   Growth k=0.089 Linf = 315, t0 = -1.13
-#   Weight = 0.00002861 x Length^2.929
+# Use results from VPA assignment to estimate Fmax and F40%.
 #
 #==============================================================================
 
@@ -27,47 +19,51 @@
 source("../06_VPA/vpa_function.R")
 
 # Read catch at age, change units
-catage <- read.table("../06_VPA/bluefin.dat", header=TRUE, check.names=FALSE, row.names=1)
-catage <- catage / 1000
+catage <- read.csv("../06_VPA/cod_catch.csv", check.names = FALSE, row.names = 1)
 
 # Run model
-vpafit <- vpa(catage, 0.14, 0.1, 5)
+vpafit <- calibrate(catage, M = 0.2, Fterm = 0.1, Fages = 3, Fyears = 3)
 
 # inspect contents
 str(vpafit)
 
+#------------------------------------------------------------------------------
+# (0) Model settings
+#------------------------------------------------------------------------------
+
+# ages and years
+Amax <- 10
+refA <- as.character(2:4)
+refT <- "2015"
+
+# growth parameters
+Linf <- 119; k <- 0.147; t0 <- 0
+
+# mean weight at age
+alpha <- 0.0073
+beta <- 3.07
+
+# natural mortality rate
+M <- 0.2
 
 #------------------------------------------------------------------------------
-# (1) Calculate partial recruitment for ages 1 to 20: Pa=Fa/Ffull, assuming P16+=P15
+# (1) Calculate partial recruitment
 #------------------------------------------------------------------------------
 
-# create a container for partial F
-a <- 1:20
-Pa <- numeric(20)
-
-# fill in ages 1 to 15
-Pa[1:15] <- vpafit$F["2007",]
-Pa[16:20] <- vpafit$F["2007",15]
-# scale
-Pa <- Pa / max(Pa)
+a <- 1:Amax
+Pa <- vpafit$F[refT,] / max(vpafit$F[refT,])
 
 #------------------------------------------------------------------------------
 # (2) Calculate mean lengh at age: La= L∞[1-e-k(a-to)]
-#   Growth k=0.089 Linf = 315, t0 = -1.13
 #------------------------------------------------------------------------------
 
-# set up growth parameters
-Linf <- 315; k <- 0.089; t0 <- -1.13
-
-# calculate mean length at age
 La <- Linf * (1 - exp(-k * (a - t0)))
 
 #------------------------------------------------------------------------------
 # (3) Calculate mean weight at age: wa = alpha * L^beta
-#   Weight = 0.00002861 x Length^2.929
 #------------------------------------------------------------------------------
 
-wa <- 0.00002861 * La^2.929
+wa <- alpha * La^beta / 1000
 
 #------------------------------------------------------------------------------
 # (4) Assume an arbitrary number of recruits (N1=R=1000)
@@ -79,36 +75,32 @@ R <- 1000
 # (5) Assume F=0 (for now)
 #------------------------------------------------------------------------------
 
-F <- 0
+Fmult <- 0
 
 #------------------------------------------------------------------------------
 # (6) Calculate abundance at age: Na+1=Na exp(-(Pa*F + M))
-#     M = 0.14
 #------------------------------------------------------------------------------
 
 # set up N vector
-Na <- numeric(20)
-
-# define M
-M <- 0.14
+Na <- numeric(Amax)
 
 # assign age 1 and propagate down the ages
 Na[1] <- R
 for(i in seq_along(Na)[-1]) {
-  Na[i] <- Na[i-1] * exp(-(Pa[i-1] * F + M))
+  Na[i] <- Na[i-1] * exp(-(Pa[i-1] * Fmult + M))
 }
 
 # have a quick peek
-plot(a, Na, type = "b", ylim=c(0,1000),
-     main = "Population when F=0 (no fishing)")
+plot(a, Na, type = "b", ylim = c(0, 1000),
+     main = "Population when F = 0 (no fishing)")
 
 #------------------------------------------------------------------------------
-# (7) Calculate catch at age:
+# (7) Calculate catch at age
 #------------------------------------------------------------------------------
 
 Ca <- Na *
-      Pa * F / (Pa * F + M) *
-      (1 - exp(-M - Pa*F))
+      Pa * Fmult / (Pa * Fmult + M) *
+      (1 - exp(-M - Pa*Fmult))
 
 #------------------------------------------------------------------------------
 # (8) Calculate yield
@@ -117,22 +109,18 @@ Ca <- Na *
 Y <- sum(Ca * wa)
 
 #------------------------------------------------------------------------------
-# (9) Calculate yield per recruit:
+# (9) Calculate yield per recruit
 #------------------------------------------------------------------------------
 
 YPR <- Y / R
 
 #------------------------------------------------------------------------------
 # (10) Calculate spawning biomass
-#    Maturity at age 9
-#    (0% mature at ages 1-8,
-#     100% mature at ages 9+; ICCAT 2014)
 #------------------------------------------------------------------------------
 
 # set up maturity
-ma <- numeric(20)
-ma[1:8] <- 0
-ma[9:20] <- 1
+ma <- read.csv("../06_VPA/cod_maturity.csv", check.names = FALSE, row.names = 1)
+ma <- unname(unlist(ma[refT,]))
 
 # calculate ssb
 SSB <- sum(Na * ma * wa)
@@ -149,81 +137,53 @@ SPR <- SSB / R
 
 # okay, so now we need to put this together into a recipe (function)
 # In the simplest case we will need:
-#   F
+#   Fmult
 #
-#   and we will 'hard code' the other options
+# and other arguments get default values
 
-ypr <- function(F) {
+ypr <- function(Fmult, M = 0.2, P = Pa, w = wa, mat = ma) {
 
   # first lets set up all the things we need
   #-----------------------------------------------------
-  a <- 1:20
-  Pa <- numeric(20)
-  Na <- numeric(20)
-
-  # define M
-  M <- 0.14
-
-  # set up growth parameters
-  Linf <- 315; k <- 0.089; t0 <- -1.13
-  # weight params
-  alpha <- 0.00002861; beta <- 2.929
-
-  # set up maturity
-  ma <- numeric(20)
-  ma[1:8] <- 0
-  ma[9:20] <- 1
+  Amax <- length(w)
+  N <- numeric(Amax)
 
   # now the modelling:
   #-----------------------------------------------------
 
-  # (1) Calculate partial recruitment for ages 1 to 20: Pa=Fa/Ffull, assuming P16+=P15
-  Pa[1:15] <- vpafit$F["2007",]
-  Pa[16:20] <- vpafit$F["2007",15]
-  # scale
-  Pa <- Pa / max(Pa)
-
-  # (2) Calculate mean lengh at age: La= L∞[1-e-k(a-to)]
-  La <- Linf * (1 - exp(-k * (a - t0)))
-
-  # (3) Calculate mean weight at age: wa = alpha * L^beta
-  wa <- alpha * La^beta
-
   # (4) Assume an arbitrary number of recruits (N1=R=1000)
   R <- 1000
 
-  # (6) Calculate abundance at age: Na+1=Na exp(-(Pa*F + M))
-  Na[1] <- R
-  for(i in seq_along(Na)[-1]) {
-    Na[i] <- Na[i-1] * exp(-(Pa[i-1] * F + M))
+  # (6) Calculate abundance at age: N+1=N exp(-(P*Fmult + M))
+  N[1] <- R
+  for(i in seq_along(N)[-1]) {
+    N[i] <- N[i-1] * exp(-(P[i-1] * Fmult + M))
   }
 
   # (7) Calculate catch at age:
-  Ca <- Na *
-        Pa * F / (Pa * F + M) *
-        (1 - exp(-M - Pa*F))
+  C <- N *
+        P * Fmult / (P * Fmult + M) *
+        (1 - exp(-M - P*Fmult))
 
   # (8) Calculate yield
-  Y <- sum(Ca * wa)
+  Y <- sum(C * w)
 
   # (9) Calculate yield per recruit:
   YPR <- Y / R
 
   # (10) Calculate spawning biomass
-  SSB <- sum(Na * ma * wa)
+  SSB <- sum(N * mat * w)
 
   # (11) Calculate spawning biomass per recruit
   SPR <- SSB / R
 
   # format the results and return
-  out <- c(YPR, SPR)
-  names(out) <- c("YPR", "SPR")
+  out <- c(YPR = YPR, SPR = SPR)
   out
 }
 
-
 # test the function
-ypr(F=0)
+ypr(Fmult = 0)
 
 # should be the same as:
 c(YPR, SPR)
@@ -235,7 +195,7 @@ c(YPR, SPR)
 ypr(0.1)
 
 #------------------------------------------------------------------------------
-# (14) Repeat steps 6-12 up to F=1.
+# (14) Repeat steps 6-12 up to F=1
 #------------------------------------------------------------------------------
 
 # set up all the Fs we want to try
@@ -244,47 +204,51 @@ Fsteps <- seq(0, 1, by = 0.1)
 
 # calculate YPR and SPR for each F
 results <- sapply(Fsteps, ypr)
-results <- data.frame(Fsteps, t(results))
+results <- data.frame(Fmult = Fsteps, Fbar = Fsteps * mean(Pa[refA]), t(results))
 
 #------------------------------------------------------------------------------
 # (15) Plot YPR and SPR as a function of F
 #------------------------------------------------------------------------------
 
+Flab <- paste0("Average F (ages ", paste(range(refA), collapse="-"), ")")
+
 # two plots on one page
-par(mfrow = c(2,1))
+par(mfrow = c(2, 1))
 
 # ypr plot
-plot(Fsteps, results$YPR, type = "l",
-     ylab = "Yeild per recruit", las = 1)
+plot(YPR ~ Fbar, data = results, type = "l", xlab = Flab, ylab = "Yield per recruit")
 
 # spr plot
-plot(Fsteps, results$SPR, type = "l",
-     ylab = "Spawners per recruit", las = 1)
+plot(SPR ~ Fbar, data = results, type = "l", xlab = Flab, ylab = "Spawners per recruit")
 
 #------------------------------------------------------------------------------
 # (16) Find Fmax
 #------------------------------------------------------------------------------
 
 # create a quick function, suitable for an optimiser
-ypr_optim <- function(F) {
-  ypr(F)["YPR"]
+ypr_optim <- function(Fmult) {
+  ypr(Fmult)["YPR"]
 }
 
 # test it works!
 ypr_optim(1)
 
 # now find the F that maximises YPR
-opt <- optimize(ypr_optim, interval = c(0,1), maximum = TRUE)
-Fmax <- opt$maximum
+opt <- optimize(ypr_optim, interval = c(0, 1), maximum = TRUE)
+Fmax_mult <- opt$maximum
+Fmax <- Fmax_mult * mean(Pa[refA])
 
 #------------------------------------------------------------------------------
-# (17) According to the VPA results and the YPR results, what was the
-# status of the tuna fishery in 2007?
+# (17) According to the VPA results and the YPR results, how does the historical
+# fishing mortality compare to Fmax?
 #------------------------------------------------------------------------------
 
-plot(as.integer(rownames(vpafit$F)), vpafit$F[,3], type = "l",
-     main = "Fmax", xlab="Year", ylab="Fishing mortality rate")
+Year <- as.integer(rownames(vpafit$F))
+Fbar <- rowMeans(vpafit$F[,refA])
+plot(Year, Fbar, type = "l", ylim = c(0, 1.1 * max(Fbar)), yaxs = "i",
+     main = "Fmax", xlab = "Year", ylab = Flab)
 abline(h = Fmax, col = "blue")
+
 
 
 #------------------------------------------------------------------------------
@@ -293,13 +257,13 @@ abline(h = Fmax, col = "blue")
 
 # use linear interpolation to get the value of F when SPR is 0.4 SPR when F = 0
 results
-SPR0 <- results$SPR[results$Fsteps==0.0]
+SPR0 <- results$SPR[results$Fmult == 0.0]
 apprx <- approx(results$SPR, Fsteps, xout = 0.4 * SPR0)
-F40 <- apprx$y
+F40_mult <- apprx$y
+F40 <- F40_mult * mean(Pa[refA])
 
 # spr plot
 plot(Fsteps, results$SPR, type = "b", main = "F40%",
-     xlab = "Fishing mortality rate", ylab = "Spawners per recruit", las = 1)
+     xlab = Flab, ylab = "Spawners per recruit", las = 1)
 # a line showing F40
 lines(c(F40, F40), c(0, 0.4 * SPR0), col = "red")
-
